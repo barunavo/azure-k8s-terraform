@@ -1,0 +1,6 @@
+image: barunavopal/friday
+BASEURL: demo.barunavo.com
+REPLICAS: 1
+ENVIRONMENT: stage
+CPU: 200m
+MEMORY: 400Mi

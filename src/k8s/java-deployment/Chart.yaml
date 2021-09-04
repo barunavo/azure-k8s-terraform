@@ -1,0 +1,6 @@
+name: challenge
+version: 0.0.1
+description: review java app 
+home: https://github.com/barunavo-pal.git
+sources:
+  - https://github.com/barunavo-pal/tree/master

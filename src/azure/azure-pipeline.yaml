@@ -1,0 +1,80 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+
+resources:
+- repo: self
+
+stages:
+- stage: Validate
+  jobs:
+  - job: Validate
+    continueOnError: false
+    steps:
+    - publish: terraform
+      artifact: terraform
+    - task: azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+      displayName: 'Use Terraform v0.13.2'
+      inputs:
+        terraformVersion: 0.13.2
+    - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+      displayName: 'terraform init'
+      inputs:
+        command: init
+        workingDirectory: 1-terraform
+        backendType: azurerm
+        backendServiceArm: 'Azure SPN'
+        backendAzureRmResourceGroupName: 'aks-getting-starteddefault'
+        backendAzureRmStorageAccountName: 'xxxxxxxx'
+        backendAzureRmContainerName: 'tfstate'
+        backendAzureRmKey: 'demo.terraform.tfstate'
+    - task: azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+      displayName: 'terraform validate'
+      inputs:
+        command: validate
+        workingDirectory: terraform
+ 
+
+- stage: Deploy
+  jobs:
+    # track deployments on the environment
+  - deployment: Deploy_Terraform
+    pool:
+      vmImage: 'ubuntu-latest'
+    # creates an environment if it doesn’t exist
+    environment: 'DEV'
+    strategy:
+      # default deployment strategy
+      runOnce:
+        deploy:
+          steps:
+          # - download: current
+          #   artifact: terraform_out
+          - task: azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+            displayName: 'terraform init'
+            inputs:
+              command: init
+              workingDirectory: $(Pipeline.Workspace)/terraform
+              backendType: azurerm
+              backendServiceArm: 'Azure SPN'
+              backendAzureRmResourceGroupName: 'aks-getting-starteddefault'
+              backendAzureRmStorageAccountName: 'terraformstate'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'demo.terraform.tfstate'
+          - task: azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+            displayName: 'terraform plan'
+            inputs:
+              command: plan
+              workingDirectory: $(Pipeline.Workspace)/terraform
+              environmentServiceName: 'Azure SPN'
+              secureVarsFile: 'aks_conf.tfvars'
+              commandOptions: '-out $(Pipeline.Workspace)/terraform/terraform_aks_out'
+              terraformVersion: 0.13.2
+          - task: azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+            displayName: 'terraform apply'
+            inputs:
+              command: apply -auto-approve
+              workingDirectory: $(Pipeline.Workspace)/terraform
+              environmentServiceName: 'Azure SPN'
+              terraformVersion: 0.13.2
+            

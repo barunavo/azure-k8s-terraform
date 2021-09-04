@@ -1,0 +1,33 @@
+pool:
+  name: Hosted Ubuntu 1604
+
+variables:
+  # The below variable should be secure  
+  azureSubscriptionEndpoint: Azure subscription 1
+  azureResourceGroup: aks-getting-starteddefault
+  kubernetesCluster: clusterdefault
+
+steps:
+- task: HelmInstaller@0
+  displayName: Install Helm 3.6.2
+  inputs:
+    helmVersion: 3.6.2
+
+- task: HelmDeploy@0
+  displayName: helm init
+  inputs:
+    azureSubscriptionEndpoint: $(azureSubscriptionEndpoint)
+    azureResourceGroup: $(azureResourceGroup)
+    kubernetesCluster: $(kubernetesCluster)
+    command: init
+    arguments: --client-only
+
+- task: HelmDeploy@0
+  displayName: helm install
+  inputs:
+    azureSubscriptionEndpoint: $(azureSubscriptionEndpoint)
+    azureResourceGroup: $(azureResourceGroup)
+    kubernetesCluster: $(kubernetesCluster)
+    command: upgrade
+    chartPath: k8s/java-deployment
+    arguments: --values k8s/java-deployment/values-dev.yaml --namespace app
